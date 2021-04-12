@@ -70,6 +70,14 @@ QualEpsilon::~QualEpsilon()
   grasp->removeGWS(gws);
 }
 
+double l2_norm(double const* u, int n) {
+    double accum = 0.;
+    for (int i = 0; i < n; ++i) {
+        accum += u[i] * u[i];
+    }
+    return sqrt(accum);
+}
+
 /*!
   Returns the minimum distance from the origin to any of the hyperplanes
   defining the boundary of the GWS.
@@ -77,25 +85,60 @@ QualEpsilon::~QualEpsilon()
 double
 QualEpsilon::evaluate()
 {
+  std::cout << "EVALUATING" << std::endl;
   double minOffset = std::numeric_limits<double>::max();
 
   if (!gws->hyperPlanes) {
 #ifdef GRASPITDBG
     std::cout << "hyperplanes is NULL" << std::endl;
 #endif
+    std::cout << "hyperplanes is NULL" << std::endl;
     return -1.0;
   }
 
 #ifdef GRASPITDBG
   std::cout << "numHyperPlanes" << gws->numHyperPlanes << std::endl;
 #endif
+  std::cout << "numHyperPlanes" << gws->numHyperPlanes << std::endl;
 
+  //for (int i = 0; i < gws->numHyperPlanes; i++) {
+    //std::cout << i << std::endl;
+    //if (i == 0 || -(gws->hyperPlanes[i][6]) < minOffset) {
+      //minOffset = -(gws->hyperPlanes[i][6]);
+      //if (minOffset < 0) { return -1.0; }     // not a force-closure grasp
+    //}
+  //}
   for (int i = 0; i < gws->numHyperPlanes; i++) {
-    if (i == 0 || -(gws->hyperPlanes[i][6]) < minOffset) {
-      minOffset = -(gws->hyperPlanes[i][6]);
-      if (minOffset < 0) { return -1.0; }     // not a force-closure grasp
+    double norm_u = l2_norm(gws->hyperPlanes[i], 6);
+    std::cout << "norm_u " << norm_u << std::endl;
+    double *scaled_u = new double[6];
+    for (int j = 0; j < 6; ++j) {
+      scaled_u[j] = -gws->hyperPlanes[i][6] * gws->hyperPlanes[i][j] / norm_u;
+      if (j == 1 && scaled_u[j] > 0.0) {
+        scaled_u[j] = scaled_u[j] * 10.0;
+      }
+    }
+    double offset = l2_norm(scaled_u, 6);
+    if (i == 0 || offset < minOffset) {
+      minOffset = offset;
     }
   }
+  // for (int i = 0; i < gws->numHyperPlanes; i++) {
+  //   double norm_u = l2_norm(gws->hyperPlanes[i], 6);
+  //   double *scaled_u = new double[6];
+  //   //std::cout << "offset" << gws->hyperPlanes[i][6] << std::endl;
+  //   double offset = -gws->hyperPlanes[i][6] * gws->hyperPlanes[i][1] / norm_u;
+  //   if (offset < minOffset && gws->hyperPlanes[i][1] > 0.0) {
+  //     minOffset = offset;
+  //   }
+  // }
+
+  if (minOffset == std::numeric_limits<double>::max()) {
+    std::cout << "offset calc failed" << std::endl;
+    minOffset = -1.0;
+  }
+  std::cout << "offset: " << minOffset << std::endl;
+
 
   val = minOffset;
   return val;
@@ -116,8 +159,22 @@ QualEpsilon::evaluate3D()
 #endif
 
   double minOffset = -1.0e3;
+  //for (int i = 0; i < gws->numHyperPlanes; i++) {
+    //if (gws->hyperPlanes[i][6] > minOffset) {
+      //minOffset = gws->hyperPlanes[i][6];
+    //}
+  //}
   for (int i = 0; i < gws->numHyperPlanes; i++) {
-    if (gws->hyperPlanes[i][6] > minOffset) {
+    double norm_u = l2_norm(gws->hyperPlanes[i], 6);
+    double *scaled_u = new double[6];
+    for (int j = 0; j < 6; ++j) {
+      scaled_u[j] = gws->hyperPlanes[i][6] * gws->hyperPlanes[i][j] / norm_u;
+      if (j == 1 && scaled_u[j] < 0.0) {
+        scaled_u[j] = scaled_u[j] * 0.5;
+      }
+    }
+    double offset = l2_norm(scaled_u, 6);
+    if (offset > minOffset) {
       minOffset = gws->hyperPlanes[i][6];
     }
   }

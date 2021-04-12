@@ -50,7 +50,8 @@ int PointContact::setUpFrictionEdges(bool dynamicsOn)
     return 0;
   }
   double eccen[3] = {1, 1, 1};
-  int numDirs[1] = {8};
+  //int numDirs[1] = {8};
+  int numDirs[1] = {3};
   double phi[1] = {0.0};
   return setUpFrictionEllipsoid(1, numDirs, phi, eccen);
 }

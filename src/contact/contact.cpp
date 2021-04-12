@@ -180,6 +180,8 @@ void Contact::computeWrenches()
 int
 Contact::setUpFrictionEllipsoid(int numLatitudes, int numDirs[], double phi[], double eccen[])
 {
+  std::cout << "numLatitudes" << numLatitudes << std::endl;
+  std::cout << "numDirs" << numDirs[0] << std::endl;
   numFrictionEdges = 0;
   for (int i = 0; i < numLatitudes; i++) {
     numFrictionEdges += numDirs[i];

@@ -459,6 +459,7 @@ GWS::buildHyperplanesFromWrenches(void *wr, int numWrenches,
                                   std::vector<int> useDimensions)
 {
   DBGP("Qhull init on " << numWrenches << " wrenches");
+  std::cout << "Qhull init on " << numWrenches << " wrenches" << std::endl;
 
   // qhull variables
   coordT *wrenches = (coordT *)wr;
@@ -481,6 +482,7 @@ GWS::buildHyperplanesFromWrenches(void *wr, int numWrenches,
 
   if ((exitcode = setjmp(qh errexit))) {
     DBGP("QUALITY: 0 volume, quick exit");
+    std::cout << "QUALITY: 0 volume, quick exit" << std::endl;
     qh NOerrexit = True;
     qh_freeqhull(!qh_ALL);
     qh_memfreeshort(&curlong, &totlong);
@@ -511,6 +513,7 @@ GWS::buildHyperplanesFromWrenches(void *wr, int numWrenches,
   hyperPlanes = new doublePtr[numHyperPlanes];
   if (!hyperPlanes) {
     DBGA("Out of memory allocating hyperPlanes array");
+    std::cout << "Out of memory allocaitng hyperPlanes array" << std::endl;
     return FAILURE;
   }
 
@@ -518,6 +521,7 @@ GWS::buildHyperplanesFromWrenches(void *wr, int numWrenches,
     hyperPlanes[i] = new double[7];
     if (!hyperPlanes[i]) {
       DBGA("Out of memory allocating hyperPlanes array");
+      std::cout << "Out of memory allocaitng hyperPlanes array" << std::endl;
       return FAILURE;
     }
   }
@@ -547,6 +551,7 @@ GWS::buildHyperplanesFromWrenches(void *wr, int numWrenches,
             totlong, curlong);
   }
   DBGP("Qhull SUCCESS");
+  std::cout << "Qhull SUCCESS" << std::endl;
   return SUCCESS;
 }
 
@@ -732,11 +737,15 @@ minkowskiSum(Grasp *g, int c, int &wrenchNum, coordT *wrenchArray, Wrench prevSu
 int
 LInfGWS::build(std::vector<int> useDimensions)
 {
+  std::cout << "LinfGWS::build" << std::endl;
   clearGWS();
   if (!grasp->getNumContacts()) {
+    std::cout << "grasp get num contacts false" << std::endl;
     forceClosure = false;
     return SUCCESS;
   }
+  std::cout << "grasp get num contacts true" << std::endl;
+  std::cout << "grasp get num contacts:" << grasp->getNumContacts() << std::endl;
 
   //count the number of dimensions actually in use
   int numDimensions = 0;
@@ -745,11 +754,13 @@ LInfGWS::build(std::vector<int> useDimensions)
       numDimensions++;
     }
   }
+  std::cout << numDimensions << std::endl;
 
   int wrenchCount = 1;
   for (int i = 0; i < grasp->getNumContacts(); i++) {
     wrenchCount *= grasp->getContact(i)->getMate()->numFCWrenches + 1;
-    if (wrenchCount > INT_MAX / 6.0) { //what is a reasonable threshold ?
+    //if (wrenchCount > INT_MAX / 6.0) { //what is a reasonable threshold ?
+    if (wrenchCount > 10000) { //what is a reasonable threshold ?
       DBGA("Too many contacts to compute the Minkowski sum!");
       return FAILURE;
     }
@@ -767,29 +778,41 @@ LInfGWS::build(std::vector<int> useDimensions)
 
   int wrenchNum = 0;
   minkowskiSum(grasp, 0, wrenchNum, array, initSum, useDimensions);
+  std::cout << "sum done" << std::endl;
 
   //-----lock qhull access
+  std::cout << "before lock" << std::endl;
   qhull_mutex.lock();
+  std::cout << "after lock" << std::endl;
 
   int result;
   try {
     result = buildHyperplanesFromWrenches(array, wrenchCount, useDimensions);
   } catch (...) {
+    std::cout << "build qhull 3d failed!!!" << std::endl;
     DBGA("Build QHull 3D failed!!!");
     result = FAILURE;
   }
 
   //-----release qhull access
+  std::cout << "before unlock" << std::endl;
   qhull_mutex.unlock();
+  std::cout << "after unlock" << std::endl;
+  std::cout << "FAILURE" << FAILURE << std::endl;
+  std::cout << "SUCCESS" << SUCCESS << std::endl;
+  std::cout << "result" << result << std::endl;
 
   if (result == SUCCESS) {
+    std::cout << "result success" << std::endl;
     computeHyperplaneMetrics();
   } else {
+    std::cout << "result fail" << std::endl;
     clearGWS();
   }
 
   DBGP("HULL VOLUME: " << hullVolume);
 
   delete [] array;
+  std::cout << "success" << std::endl;
   return result;
 }
